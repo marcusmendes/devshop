@@ -5,6 +5,10 @@ const port = process.env.port || 3000
 const category = require('./models/category')
 const product = require('./models/product')
 
+const categories = require('./controllers/categories')
+const products = require('./controllers/products')
+const home = require('./controllers/home')
+
 const db = require('knex')({
     client: 'pg',
     connection: {
@@ -23,22 +27,18 @@ db.on('query', query => {
 app.set('view engine', 'ejs')
 app.use(express.static('public'))
 
-app.get('/', async (req, res) => {
+//middleware
+app.use( async (req, res, next) => {
     const categories = await category.getCategories(db)()
-    res.render('home', { categories })
+    res.locals = {
+        categories
+    }
+    next()
 })
 
-app.get('/categoria/:id/:slug', async (req, res) => {
-    const categories = await category.getCategories(db)()
-    const products = await product.getProductsByCategoryId(db)(req.params.id)
-    const cat = await category.getCategoryById(db)(req.params.id)
-
-    res.render('category', {
-        products,
-        categories,
-        category: cat
-    })
-})
+app.get('/', home.getIndex)
+app.get('/categoria/:id/:slug', categories.getCategories(db))
+app.get('/produto/:id/:slug', products.getProduct(db))
 
 app.listen(port, (err) => {
     if(err) {
